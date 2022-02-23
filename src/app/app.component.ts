@@ -41,7 +41,7 @@ export class AppComponent implements OnInit {
   ngOnInit(): void {
     this.searchForm();
     let loader = new Loader({
-      apiKey: 'AIzaSyCVo2fnTJBOkKtVxDCCwcE3O9qUTt2JrqU'
+      apiKey: ''
     });
     this.blockUI.start('Loading page... please wait')
 
