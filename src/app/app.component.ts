@@ -5,6 +5,8 @@ import { BlockUI, NgBlockUI } from 'ng-block-ui';
 import { ToastrService } from 'ngx-toastr';
 import { RouteAddress } from './core/model/route-address.model';
 import { RoutesService } from './core/services/routes.service';
+import { API_KEY } from 'secret';
+import { throwError } from 'rxjs';
 
 @Component({
   selector: 'app-root',
@@ -24,11 +26,12 @@ export class AppComponent implements OnInit {
   dropoff!: string;
   token!: string;
   hasFormErrors!: boolean;
-  errorMessage: string = 'Fill in the form appropriately';
+  errorMessage: string = 'You must fill in all details';
   waypoints = [];
   passedData = {};
   timeout = 0;
   response: any = {};
+  loader: Loader;
 
   constructor(
     private fBuilder: FormBuilder,
@@ -36,16 +39,18 @@ export class AppComponent implements OnInit {
     private toastr: ToastrService
   ) {
 
+    //Instantiate loader object on component instance creation
+    this.loader = new Loader({
+      apiKey: API_KEY
+    });
   }
 
   ngOnInit(): void {
     this.searchForm();
-    let loader = new Loader({
-      apiKey: ''
-    });
-    this.blockUI.start('Loading page... please wait')
 
-    loader.load().then(() => {
+    this.blockUI.start('Loading map... please wait')
+
+    this.loader.load().then(() => {
       new google.maps.Map(this.myMap.nativeElement, {
         center: { lat: 9.085198, lng: 7.497654 },
         zoom: 6
@@ -77,8 +82,9 @@ export class AppComponent implements OnInit {
     this.getWayPointsForm.markAsPristine();
     this.getWayPointsForm.markAsUntouched();
     this.getWayPointsForm.updateValueAndValidity();
-}
+  }
   onSubmit(): any {
+    this.response = '';
     this.hasFormErrors = false;
     const controls = this.getWayPointsForm.controls;
     /** check form */
@@ -89,15 +95,24 @@ export class AppComponent implements OnInit {
       this.hasFormErrors = true;
       return;
     }
+
+    //Get prepared data from form
     const address = this.prepareData();
 
+    //perform operation
     this.getWayPoints(address);
   }
 
-  getWayPoints(data: RouteAddress): void {
+
+  /**
+   * This method performs request for getting waypoints
+   * @param data
+   */
+  getWayPoints(data: RouteAddress) {
+    this.blockUI.stop();
     this.blockUI.start('Making a server request... Please Wait')
     // this.blockUI.start('Drawing Routes... Please Wait')
-    this.routesService.postRoutingRequest(data).subscribe({
+     this.routesService.postRoutingRequest(data).subscribe({
       next: (response) => {
         this.token = response.token;
         this.getPointsDetails(data, this.token);
@@ -105,7 +120,8 @@ export class AppComponent implements OnInit {
       error: (error) => {
         const message = 'Error occurred';
         // const message = this.routesService.handleError(error)
-        this.toastr.error(message, error);
+        this.toastr.error(message, error.error);
+        this.response = '';
         this.blockUI.stop();
       }
     },
@@ -114,46 +130,98 @@ export class AppComponent implements OnInit {
   }
 
 
+  /**
+   * Get server response using token gotten from previous request
+   * @param data
+   * @param token
+   */
   getPointsDetails(data: any, token: string) {
+    this.blockUI.stop();
     this.blockUI.start('Getting waypoints response from server.... Please Wait')
     this.routesService.getWayPointsUsingToken(token).subscribe({
-
       next: (response) => {
-
         //Assign response from server to member variable response
         this.response = response;
+        switch (response.status) {
+          // case 'in-progress':
+          //   this.blockUI.start('Retrying request.... please wait');
+          //   /***Retry request */
+          //   //Get prepared data from form
+          //   const address = this.prepareData();
+          //   this.getWayPoints(address);
+          //   break;
 
+          case 'success':
+            //Transform waypoints received from server
+            const waypoints = response?.path.map(([lat, lng]) => ({ lat, lng }))
+            const newWaypoints = waypoints.map((item) => {
+              const result = {
+                location: parseFloat(item.lat) + ',' + parseFloat(item.lng),
+                stopover: true,
+              }
+              return result;
+            });
+            this.toastr.success('Successul operation...')
+            this.blockUI.stop();
 
-         //check for failure
-         if (response.status === 'failure') {
-          this.blockUI.stop();
+            //Call method to render the waypoints on map
+            this.drawRoute(data.origin, data.destination, newWaypoints);
+            break;
+          case 'failure':
+            this.toastr.error('Error', "Inaccessible by car")
+            this.blockUI.stop();
+            break;
+          default:
+            this.blockUI.stop();
+            this.blockUI.start('Retrying request.... please wait');
+            //   /***Retry request */
+            //   //Get prepared data from form
+              const address = this.prepareData();
+              this.getWayPoints(address);
         }
 
-        //check for in-progress
-        if (response.status === 'in progress') {
-          this.blockUI.start('Retrying request.... please wait');
 
-        }
-        //Check for success condition
-        if (this.response.status === 'success') {
+        // if (response.status === 'in progress') {
+        //   this.blockUI.start('Retrying request.... please wait');
+        //   //Get prepared data from form
+        //   const address = this.prepareData();
+        //   this.getWayPoints(address);
+        //   return;
 
-          const waypoints = response?.path.map(([lat, lng]) => ({ lat, lng }))
-          const newWaypoints = waypoints.map((item) => {
-            const result = {
-              location: parseFloat(item.lat) + ',' + parseFloat(item.lng),
-              stopover: false,
-            }
-            return result;
-          });
-          this.toastr.success('Successul operation...')
-          this.blockUI.stop();
-          this.drawingRoute(data.origin, data.destination, newWaypoints);
-        }
+        // }
+        // if (response.status === 'failure') {
+        //  throwError(()=>response.status)
+        //  this.blockUI.stop();
+        // }
+        // else {
+        //   //Check for success condition
+        //   // if (this.response.status === 'success') {
+
+        //   const waypoints = response?.path.map(([lat, lng]) => ({ lat, lng }))
+        //   const newWaypoints = waypoints.map((item) => {
+        //     const result = {
+        //       location: parseFloat(item.lat) + ',' + parseFloat(item.lng),
+        //       stopover: true,
+        //     }
+        //     return result;
+        //   });
+        //   this.toastr.success('Successul operation...')
+        //   this.blockUI.stop();
+        //   this.drawRoute(data.origin, data.destination, newWaypoints);
+        //   // }
+
+        //   return;
+
+        // }
+
+
+
+
 
 
       },
       error: (error) => {
-        this.toastr.error('Error occured..', error)
+        this.toastr.error('Error', error.error)
         this.blockUI.stop();
       }
     });
@@ -161,8 +229,10 @@ export class AppComponent implements OnInit {
 
 
 
-
-  drawingRoute(origin: any, dest: any, waypts?: Array<any>,) {
+  /**
+   * Method to draw route with waypoints
+   */
+  drawRoute(origin: any, dest: any, waypts?: Array<any>) {
     const directionsService = new google.maps.DirectionsService();
     const directionsRenderer = new google.maps.DirectionsRenderer();
     directionsService.route({
@@ -174,7 +244,9 @@ export class AppComponent implements OnInit {
     }, (response, status) => {
       // console.log(response)
       if (status == google.maps.DirectionsStatus.OK) {
+        directionsRenderer.setMap(this.myMap.nativeElement);
         directionsRenderer.setDirections(response);
+        this.blockUI.stop();
       }
     })
     this.blockUI.stop();

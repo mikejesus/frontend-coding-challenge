@@ -4,7 +4,7 @@
       <div class="flex flex-wrap justify-between">
         <div class="w-full lg:w-1/2 xl:w-5/12 px-4">
           <div class="bg-white relative rounded-lg p-8 sm:p-12">
-            <h1 class="text-3xl leading-tight">Enter Your Addresses</h1>
+            <h1 class="text-3xl leading-tight">Enter Pickup and Drop-off Address</h1>
             <div class="bg-red-500 text-white p-2" *ngIf="hasFormErrors">
               {{ errorMessage }}
             </div>
@@ -33,8 +33,8 @@
                   Get Waypoints
                 </button>
                 <button
-                  type="submit"
-                  class="w-full text-primary bg-red-400 rounded border border-primary p-3 transition hover:bg-opacity-90"
+                  (click)="reset()"
+                  class="w-full text-primary bg-red-600 rounded border border-primary p-3 transition hover:bg-opacity-90"
                 >
                   Reset
                 </button>
@@ -69,36 +69,12 @@
         </div>
         <div class="w-full lg:w-1/2 xl:w-6/12 px-1">
           <div class="mb-12 lg:mb-0">
-            <!-- <span class="block mb-4 text-base text-primary font-semibold">
-               Contact Us
-               </span>
-               <h2
-                  class="
-                  text-dark
-                  mb-6
-                  uppercase
-                  font-bold
-                  text-[32px]
-                  sm:text-[40px]
-                  lg:text-[36px]
-                  xl:text-[40px]
-                  "
-                  >
-                  GET IN TOUCH WITH US
-               </h2>
-               <p class="text-base text-body-color leading-relaxed mb-9">
-                  Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do
-                  eius tempor incididunt ut labore et dolore magna aliqua. Ut enim
-                  adiqua minim veniam quis nostrud exercitation ullamco
-               </p> -->
-
-            <!-- this creates a google map on the page with the given lat/lng from -->
-            <!-- the component as the initial center of the map: -->
             <div
               style="width: 50vw; height: 100vh"
               class="w-full h-full"
               #myMap
             ></div>
+
           </div>
         </div>
       </div>
