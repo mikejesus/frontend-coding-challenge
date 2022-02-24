@@ -3,10 +3,10 @@ import { FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { Loader } from '@googlemaps/js-api-loader';
 import { BlockUI, NgBlockUI } from 'ng-block-ui';
 import { ToastrService } from 'ngx-toastr';
+import { environment } from 'src/environments/environment';
 import { RouteAddress } from './core/model/route-address.model';
 import { RoutesService } from './core/services/routes.service';
-import { API_KEY } from 'secret';
-import { throwError } from 'rxjs';
+;
 
 @Component({
   selector: 'app-root',
@@ -41,7 +41,7 @@ export class AppComponent implements OnInit {
 
     //Instantiate loader object on component instance creation
     this.loader = new Loader({
-      apiKey: API_KEY
+      apiKey: environment.API_KEY
     });
   }
 

@@ -4,7 +4,8 @@
 
 export const environment = {
   production: false,
-  baseUrl: 'https://mock-api.dev.lalamove.com'
+  baseUrl: 'https://mock-api.dev.lalamove.com',
+  API_KEY: ''
 };
 
 /*
